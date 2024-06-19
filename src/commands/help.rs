@@ -7,7 +7,7 @@ pub async fn help( ctx: Context<'_>) -> Result<(), Error> {
     
     let reply = {
         let embed = serenity::CreateEmbed::default()
-            .title("Help")
+            .title("Feather Help")
             .description("Feather is a CS2 item/inventory price checker")
             .color(serenity::Color::BLUE)
             .fields(vec![
@@ -18,7 +18,7 @@ pub async fn help( ctx: Context<'_>) -> Result<(), Error> {
             .to_owned();
 
         let components = vec![serenity::CreateActionRow::Buttons(vec![
-            serenity::CreateButton::new_link("https://google.com")
+            serenity::CreateButton::new_link(&ctx.data().config.invite_link)
                 .label("Invite me!")
         ])];
 

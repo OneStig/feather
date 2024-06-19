@@ -2,10 +2,14 @@ use std::env;
 
 use poise::serenity_prelude as serenity;
 use crate::commands::*;
+use crate::config::Config;
 
 mod commands;
+mod config;
 
-struct Data {}
+struct Data {
+    config: Config
+}
 type Error = Box<dyn std::error::Error + Send + Sync>;
 type Context<'a> = poise::Context<'a, Data, Error>;
 
@@ -22,7 +26,9 @@ impl serenity::EventHandler for Handler {
 async fn main() {
     dotenv::dotenv().expect("Failed to load .env file");
 
-    let token = env::var("DISCORD_TOKEN").expect("Expected a token in the environment");
+    let config = Config::load_env().expect("Failed to load config");
+    let token = config.discord_token.clone();
+
     let intents = serenity::GatewayIntents::GUILD_MESSAGES
         | serenity::GatewayIntents::DIRECT_MESSAGES
         | serenity::GatewayIntents::MESSAGE_CONTENT;
@@ -41,7 +47,7 @@ async fn main() {
         .setup(|ctx, _ready, framework| {
             Box::pin(async move {
                 poise::builtins::register_globally(ctx, &framework.options().commands).await?;
-                Ok(Data {})
+                Ok(Data { config })
             })
         })
         .build();
