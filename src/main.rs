@@ -2,9 +2,11 @@ use std::env;
 
 use poise::serenity_prelude as serenity;
 use crate::commands::*;
+use crate::pricing::*;
 use crate::config::Config;
 
 mod commands;
+mod pricing;
 mod config;
 
 struct Data {
@@ -36,7 +38,8 @@ async fn main() {
     let framework = poise::Framework::builder()
         .options(poise::FrameworkOptions {
             commands: vec![
-                help::help()
+                help::help(),
+                price::price()
             ],
             prefix_options: poise::PrefixFrameworkOptions {
                 prefix: Some("-".into()),

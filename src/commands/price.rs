@@ -1,13 +1,20 @@
 use crate::{Context, Error};
 use poise::serenity_prelude as serenity;
 
-#[poise::command(slash_command, prefix_command, category = "Utility")]
-pub async fn help( ctx: Context<'_>) -> Result<(), Error> {
+#[poise::command(
+    slash_command,
+    prefix_command,
+    category = "Items",
+)]
+pub async fn price(
+    ctx: Context<'_>,
+    #[description = "Item name"] #[rest] item_name: String
+) -> Result<(), Error> {
     let footer = serenity::CreateEmbedFooter::new("Test footer");
     
     let reply = {
         let embed = serenity::CreateEmbed::default()
-            .title("Feather Help")
+            .title(format!("Item: {}", item_name))
             .description("Feather is a CS2 item/inventory price checker")
             .color(serenity::Color::from((42, 55, 126)))
             .fields(vec![
