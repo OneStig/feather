@@ -9,6 +9,15 @@ struct Data {}
 type Error = Box<dyn std::error::Error + Send + Sync>;
 type Context<'a> = poise::Context<'a, Data, Error>;
 
+struct Handler;
+
+#[serenity::async_trait]
+impl serenity::EventHandler for Handler {
+    async fn ready(&self, ctx: serenity::Context, ready: serenity::Ready) {
+        println!("{} connected to shard #{}", ready.user.name, ctx.shard_id);
+    }
+}
+
 #[tokio::main]
 async fn main() {
     dotenv::dotenv().expect("Failed to load .env file");
@@ -38,8 +47,9 @@ async fn main() {
         .build();
 
     let client = serenity::ClientBuilder::new(token, intents)
+        .event_handler(Handler)
         .framework(framework)
         .await;
-
-    client.unwrap().start().await.unwrap();
+    
+    client.unwrap().start_autosharded().await.unwrap();
 }
