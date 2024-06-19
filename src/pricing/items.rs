@@ -1,12 +1,11 @@
 use serde::Deserialize;
 use std::collections::HashMap;
 use std::fs;
-use std::path::Path;
-use tokio;
 
 #[derive(Deserialize, Debug)]
-struct Item {
-    id: String
+pub struct Item {
+    pub id: String,
+    pub name: String
 }
 
 const LOCAL_FILE: &str = "all.json";
@@ -44,7 +43,7 @@ pub async fn scrape_items() -> Result<HashMap<String, Item>, Box<dyn std::error:
                 }
             }
         }
-    }
+    };
 
     return Ok(items);
 }

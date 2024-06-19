@@ -1,5 +1,7 @@
 use std::env;
+use std::collections::HashMap;
 
+use items::scrape_items;
 use poise::serenity_prelude as serenity;
 use crate::commands::*;
 use crate::pricing::*;
@@ -30,6 +32,20 @@ async fn main() {
 
     let config = Config::load_env().expect("Failed to load config");
     let token = config.discord_token.clone();
+
+    match scrape_items().await {
+        Ok(items) => {
+            for (key, item) in &items {
+                // need to do some processing here
+                // println!("{}", item.name);
+            }
+            println!("Total item count: {}", &items.len());
+        }
+
+        Err(_) => {
+            eprintln!("Could not pull items");
+        }
+    }
 
     let intents = serenity::GatewayIntents::GUILD_MESSAGES
         | serenity::GatewayIntents::DIRECT_MESSAGES
