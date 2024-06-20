@@ -57,10 +57,10 @@ pub struct TItem {
 pub struct Priced {
     pub info: Item,
     
-    feather: Option<f32>,
-    steam: Option<f32>,
-    skinport: Option<f32>,
-    buff: Option<f32>
+    pub feather: Option<f32>,
+    pub steam: Option<f32>,
+    pub skinport: Option<f32>,
+    pub buff: Option<f32>
 }
 
 const LOCAL_PRICES: &str = "prices.json";

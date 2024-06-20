@@ -22,7 +22,7 @@ async fn autocomplete_item<'a>(
     serenity::futures::stream::iter(item_data.keys())
         .filter(move |item| serenity::futures::future::ready(smart_search(item, partial)))
         .map(|item| item.to_string())
-        .take(25)
+        .take(15)
 }
 
 #[poise::command(
@@ -35,29 +35,37 @@ pub async fn price(
     #[autocomplete = "autocomplete_item"]
     item_name: String
 ) -> Result<(), Error> {
-    let footer = serenity::CreateEmbedFooter::new("Test footer");
-    
-    let reply = {
+    let reply = if let Some(found_skin) = &ctx.data().item_data.get(&item_name) {
         let embed = serenity::CreateEmbed::default()
-            .title(format!("Item: {}", item_name))
-            .description("Feather is a CS2 item/inventory price checker")
+            .title(format!("{}", item_name))
+            // .description("Feather is a CS2 item/inventory price checker")
             .color(serenity::Color::from((42, 55, 126)))
             .fields(vec![
-                ("title", "body", true),
-                ("title", "body", true),
+                ("Suggested Price", format!("${}", match found_skin.feather {
+                    Some(p) => format!("{:.2}", p),
+                    None => "Error".to_string()
+                }), true),
             ])
-            .footer(footer)
             .to_owned();
 
         let components = vec![serenity::CreateActionRow::Buttons(vec![
             serenity::CreateButton::new_link(&ctx.data().config.invite_link)
-                .label("Invite me!")
+                .label("Purchase Item")
         ])];
 
         poise::CreateReply::default()
             .embed(embed)
             .components(components)
+    } else {
+        let embed = serenity::CreateEmbed::default()
+            .title("Item could not be found")
+            .color(serenity::Color::RED)
+            .to_owned();
+
+        poise::CreateReply::default()
+            .embed(embed)
     };
+
 
     ctx.send(reply).await?;
 
