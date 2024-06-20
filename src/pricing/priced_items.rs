@@ -1,5 +1,7 @@
 use std::collections::HashMap;
-use std::fs;
+use std::fs::{self, File};
+use std::io::copy;
+use flate2::read::GzDecoder;
 
 use serde::Deserialize;
 
@@ -38,11 +40,18 @@ async fn load_prices() -> Result<HashMap<String, TItem>, Box<dyn std::error::Err
 }
 
 pub async fn refresh_prices() -> Result<HashMap<String, TItem>, Box<dyn std::error::Error>> {
-    // this is downloading garbage data
-    let response = reqwest::get(API_PRICES).await?.text().await?;
-    let items: HashMap<String, TItem> = serde_json::from_str(&response)?;
-    fs::write(LOCAL_PRICES, response)?;
-    Ok(items)
+    let client = reqwest::Client::new();
+    let response = client.get(API_PRICES).send().await?;
+
+    if response.status().is_success() {
+        let bytes = response.bytes().await?;
+        let mut gz = GzDecoder::new(&bytes[..]);
+        let mut file = File::create(LOCAL_PRICES)?;
+    
+        copy(&mut gz, &mut file)?;
+    }
+
+    load_prices().await
 }
 
 pub async fn consolidate_prices() -> Result<HashMap<String, Priced>, Box<dyn std::error::Error>> {
