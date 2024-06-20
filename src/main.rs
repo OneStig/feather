@@ -38,8 +38,8 @@ async fn main() {
 
     let item_data = match consolidate_prices().await {
         Ok(items) => items,
-        Err(_) => {
-            eprintln!("Failed to pull items");
+        Err(e) => {
+            eprintln!("Failed to pull items: {}", e);
             HashMap::new()
         }
     };
