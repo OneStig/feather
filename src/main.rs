@@ -1,10 +1,11 @@
 use std::env;
 use std::collections::HashMap;
 
-use items::scrape_items;
 use poise::serenity_prelude as serenity;
+use priced_items::consolidate_prices;
 use crate::commands::*;
 use crate::pricing::*;
+use crate::priced_items::Priced;
 use crate::config::Config;
 
 mod commands;
@@ -12,8 +13,10 @@ mod pricing;
 mod config;
 
 struct Data {
-    config: Config
+    config: Config,
+    item_data: HashMap<String, Priced>
 }
+
 type Error = Box<dyn std::error::Error + Send + Sync>;
 type Context<'a> = poise::Context<'a, Data, Error>;
 
@@ -33,19 +36,13 @@ async fn main() {
     let config = Config::load_env().expect("Failed to load config");
     let token = config.discord_token.clone();
 
-    match scrape_items().await {
-        Ok(items) => {
-            for (key, item) in &items {
-                // need to do some processing here
-                // println!("{}", item.name);
-            }
-            println!("Total item count: {}", &items.len());
-        }
-
+    let item_data = match consolidate_prices().await {
+        Ok(items) => items,
         Err(_) => {
-            eprintln!("Could not pull items");
+            eprintln!("Failed to pull items");
+            HashMap::new()
         }
-    }
+    };
 
     let intents = serenity::GatewayIntents::GUILD_MESSAGES
         | serenity::GatewayIntents::DIRECT_MESSAGES
@@ -66,7 +63,10 @@ async fn main() {
         .setup(|ctx, _ready, framework| {
             Box::pin(async move {
                 poise::builtins::register_globally(ctx, &framework.options().commands).await?;
-                Ok(Data { config })
+                Ok(Data { 
+                    config,
+                    item_data
+                })
             })
         })
         .build();

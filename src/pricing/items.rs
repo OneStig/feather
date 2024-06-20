@@ -2,10 +2,19 @@ use serde::Deserialize;
 use std::collections::HashMap;
 use std::fs;
 
-#[derive(Deserialize, Debug)]
+#[derive(Deserialize, Clone, Debug)]
+pub struct Rarity {
+    color: String
+}
+
+#[derive(Deserialize, Clone, Debug)]
 pub struct Item {
     pub id: String,
-    pub name: String
+    pub market_hash_name: String,
+    pub image: String,
+    pub rarity: Rarity,
+
+    pub phase: Option<String>
 }
 
 const LOCAL_FILE: &str = "all.json";
