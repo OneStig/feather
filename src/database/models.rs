@@ -9,6 +9,8 @@ pub struct InventoryPoint {
 #[derive(Debug, Serialize, Deserialize)]
 pub struct User {
     pub user_id: i64,
+    pub steam_id: i64,
+    
     pub value_history: Vec<InventoryPoint>,
 }
 
