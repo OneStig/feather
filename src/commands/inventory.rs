@@ -1,6 +1,7 @@
 use crate::{Context, Error};
 use poise::serenity_prelude as serenity;
 
+/// Check CS2 inventory value
 #[poise::command(
     slash_command,
     category = "Items",

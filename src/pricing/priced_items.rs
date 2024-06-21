@@ -7,34 +7,34 @@ use serde::Deserialize;
 
 use crate::items::*;
 
-type Doppler = HashMap<String, Option<f32>>;
+type Doppler = HashMap<String, Option<f64>>;
 
 // steam
 #[derive(Deserialize, Debug)]
 pub struct SItem {
-    last_24h: Option<f32>,
-    last_7d: Option<f32>,
-    last_30d: Option<f32>,
-    last_90d: Option<f32>
+    last_24h: Option<f64>,
+    last_7d: Option<f64>,
+    last_30d: Option<f64>,
+    last_90d: Option<f64>
 }
 
 // skinport
 #[derive(Deserialize, Debug)]
 pub struct PItem {
-    starting_at: Option<f32>
+    starting_at: Option<f64>
 }
 
 // cstrade
 #[derive(Deserialize, Debug)]
 pub struct CItem {
-    price: Option<f32>,
+    price: Option<f64>,
     doppler: Option<Doppler>
 }
 
 // buff
 #[derive(Deserialize, Debug)]
 pub struct BPrice {
-    price: Option<f32>,
+    price: Option<f64>,
     doppler: Option<Doppler>
 }
 
@@ -56,10 +56,10 @@ pub struct TItem {
 pub struct Priced {
     pub info: Item,
     
-    pub feather: Option<f32>,
-    pub steam: Option<f32>,
-    pub skinport: Option<f32>,
-    pub buff: Option<f32>
+    pub feather: Option<f64>,
+    pub steam: Option<f64>,
+    pub skinport: Option<f64>,
+    pub buff: Option<f64>
 }
 
 const LOCAL_PRICES: &str = "prices.json";
@@ -86,19 +86,17 @@ pub async fn refresh_prices() -> Result<HashMap<String, TItem>, Box<dyn std::err
     load_prices().await
 }
 
-fn harmonic_mean(prices: &[f32]) -> Option<f32> {
+fn power_mean(prices: &[f64]) -> Option<f64> {
+    const POWER: f64 = -4.0;
+
     if prices.is_empty() {
         return None;
     }
 
-    let n = prices.len() as f32;
-    let recip: f32 = prices.iter().map(|&p| 1.0 / p).sum();
+    let n = prices.len() as f64;
+    let sum: f64 = prices.iter().map(|&p| p.powf(POWER)).sum();
 
-    if recip == 0.0 {
-        return None;
-    }
-
-    Some(n / recip)
+    Some((sum / n).powf(1.0 / POWER))
 }
 
 pub async fn consolidate_prices() -> Result<HashMap<String, Priced>, Box<dyn std::error::Error>> {
@@ -160,7 +158,7 @@ pub async fn consolidate_prices() -> Result<HashMap<String, Priced>, Box<dyn std
                         Priced {
                             info: item.clone(),
                             feather: {
-                                let prices: Vec<f32> = [
+                                let prices: Vec<f64> = [
                                     trader_price,
                                     buff_price
                                 ]
@@ -168,7 +166,7 @@ pub async fn consolidate_prices() -> Result<HashMap<String, Priced>, Box<dyn std
                                 .filter_map(|&price| price)
                                 .collect();
 
-                                harmonic_mean(&prices) 
+                                power_mean(&prices) 
                             },
                             steam: None,
                             skinport: None,
@@ -197,7 +195,7 @@ pub async fn consolidate_prices() -> Result<HashMap<String, Priced>, Box<dyn std
                         Priced {
                             info: item.clone(),
                             feather: {
-                                let prices: Vec<f32> = [
+                                let prices: Vec<f64> = [
                                     steam_price,
                                     trader_price,
                                     skinport_price,
@@ -207,7 +205,7 @@ pub async fn consolidate_prices() -> Result<HashMap<String, Priced>, Box<dyn std
                                 .filter_map(|&price| price)
                                 .collect();
 
-                                harmonic_mean(&prices) 
+                                power_mean(&prices) 
                             },
                             steam: steam_price,
                             skinport: skinport_price,

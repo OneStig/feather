@@ -1,7 +1,12 @@
 use crate::{Context, Error};
 use poise::serenity_prelude as serenity;
 
-#[poise::command(slash_command, prefix_command, category = "Utility")]
+/// Help menu with list of commands
+#[poise::command(
+    slash_command,
+    prefix_command,
+    category = "Utility")
+]
 pub async fn help( ctx: Context<'_>) -> Result<(), Error> {
     let footer = serenity::CreateEmbedFooter::new("Test footer");
     

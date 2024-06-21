@@ -1,20 +1,26 @@
-use std::env;
-use std::collections::HashMap;
+use std::{collections::HashMap, sync::Arc};
 
+// External crates
 use poise::serenity_prelude as serenity;
-use priced_items::consolidate_prices;
-use crate::commands::*;
-use crate::pricing::*;
-use crate::priced_items::Priced;
-use crate::config::Config;
+use tokio::sync::Mutex;
 
+// Local module imports
 mod commands;
-mod pricing;
 mod config;
+mod database;
+mod pricing;
+
+// Re-exports from local
+use commands::*;
+use config::Config;
+use database::{DatabaseManager, User, Guild};
+use pricing::*;
+use priced_items::{consolidate_prices, Priced};
 
 struct Data {
     config: Config,
-    item_data: HashMap<String, Priced>
+    item_data: HashMap<String, Priced>,
+    db: Arc<Mutex<DatabaseManager>>,
 }
 
 type Error = Box<dyn std::error::Error + Send + Sync>;
@@ -31,11 +37,12 @@ impl serenity::EventHandler for Handler {
 
 #[tokio::main]
 async fn main() {
+    // Load info from .env file
     dotenv::dotenv().expect("Failed to load .env file");
-
     let config = Config::load_env().expect("Failed to load config");
     let token = config.discord_token.clone();
 
+    // Load item information, but don't crash if fail
     let item_data = match consolidate_prices().await {
         Ok(items) => items,
         Err(e) => {
@@ -43,7 +50,11 @@ async fn main() {
             HashMap::new()
         }
     };
+    
+    // Load database manager, crash if fail
+    let db = DatabaseManager::new().await.expect("Database failed to connect");
 
+    // Register Discord gateway intents
     let intents = serenity::GatewayIntents::GUILD_MESSAGES
         | serenity::GatewayIntents::DIRECT_MESSAGES
         | serenity::GatewayIntents::MESSAGE_CONTENT;
@@ -66,7 +77,8 @@ async fn main() {
                 poise::builtins::register_globally(ctx, &framework.options().commands).await?;
                 Ok(Data { 
                     config,
-                    item_data
+                    item_data,
+                    db
                 })
             })
         })

@@ -3,6 +3,12 @@ use poise::serenity_prelude as serenity;
 use crate::{Context, Error};
 
 fn smart_search(item: &str, query: &str) -> bool {
+    
+    // Note: This is currently very inefficient because the search is fully
+    //       exhaustive and doesn't yet utilize caching. Autocomplete times
+    //       in my testing are usable, but subpar, and will likely be worse
+    //       while under load from multiple users.
+
     let item_lower = item.to_lowercase();
     let query_lower = query.to_lowercase();
     
@@ -25,6 +31,7 @@ async fn autocomplete_item<'a>(
         .take(15)
 }
 
+/// Check the price of a CS2 item
 #[poise::command(
     slash_command,
     category = "Items",
@@ -36,15 +43,20 @@ pub async fn price(
     item_name: String
 ) -> Result<(), Error> {
     let reply = if let Some(found_skin) = &ctx.data().item_data.get(&item_name) {
-        let imgurl = match &found_skin.info.image {
-            Some(imgurl) => imgurl,
-            None => ""
+        let rarity_color = match &found_skin.info.rarity {
+            Some(rarity) => {
+                serenity::Color::from_rgb(
+                    u8::from_str_radix(&rarity.color[1..3], 16).unwrap(),
+                    u8::from_str_radix(&rarity.color[3..5], 16).unwrap(),
+                    u8::from_str_radix(&rarity.color[5..7], 16).unwrap()
+                )
+            },
+            None => serenity::Color::LIGHT_GREY,
         };
 
-        let embed = serenity::CreateEmbed::default()
+        let mut embed = serenity::CreateEmbed::default()
             .title(format!("{}", item_name))
-            // .description("Feather is a CS2 item/inventory price checker")
-            .color(serenity::Color::from((42, 55, 126)))
+            .color(rarity_color)
             .fields(vec![
                 ("<:botchicken:740299794550882324>  ·  Suggested Price", match found_skin.feather {
                     Some(p) => format!("${:.2}", p),
@@ -63,8 +75,15 @@ pub async fn price(
                     None => "Error".to_string()
                 }, true),
             ])
-            .thumbnail(imgurl)
             .to_owned();
+
+        match &found_skin.info.image {
+            Some(imgurl) => {
+                embed = embed.thumbnail(imgurl);
+            }
+
+            None => {}
+        }
 
         let components = vec![serenity::CreateActionRow::Buttons(vec![
             serenity::CreateButton::new_link(&ctx.data().config.invite_link)

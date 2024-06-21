@@ -4,7 +4,7 @@ use std::fs;
 
 #[derive(Deserialize, Clone, Debug)]
 pub struct Rarity {
-    color: String
+    pub color: String
 }
 
 #[derive(Deserialize, Clone, Debug)]
