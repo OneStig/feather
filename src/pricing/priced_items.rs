@@ -3,7 +3,6 @@ use std::fs::{self, File};
 use std::io::copy;
 
 use flate2::read::GzDecoder;
-use tokio::task;
 use serde::Deserialize;
 
 use crate::items::*;
@@ -146,32 +145,54 @@ pub async fn consolidate_prices() -> Result<HashMap<String, Priced>, Box<dyn std
                     success_count += 1;
 
                     if let Some(doppler_phase) = item.phase.clone() {
+                        let trader_price = item_price.cstrade
+                            .as_ref()
+                            .and_then(|cstrade| cstrade.doppler.as_ref())
+                            .and_then(|doppler| doppler.get(&doppler_phase))
+                            .and_then(|doppler_option| *doppler_option);
+
+                        let buff_price = item_price.buff163.starting_at
+                            .as_ref()
+                            .and_then(|starting_at| starting_at.doppler.as_ref())
+                            .and_then(|doppler| doppler.get(&doppler_phase))
+                            .and_then(|doppler_option| *doppler_option);
+
                         Priced {
                             info: item.clone(),
-                            feather: None,
+                            feather: {
+                                let prices: Vec<f32> = [
+                                    trader_price,
+                                    buff_price
+                                ]
+                                .iter()
+                                .filter_map(|&price| price)
+                                .collect();
+
+                                harmonic_mean(&prices) 
+                            },
                             steam: None,
                             skinport: None,
-                            buff: None,
+                            buff: buff_price,
                         }
                     } else {
                         let mut steam_price = item_price.steam.last_24h
-                                                        .or(item_price.steam.last_7d)
-                                                        .or(item_price.steam.last_30d)
-                                                        .or(item_price.steam.last_90d);
+                            .or(item_price.steam.last_7d)
+                            .or(item_price.steam.last_30d)
+                            .or(item_price.steam.last_90d);
                         
                         if steam_price == Some(0.0) {
                             steam_price = None
                         }
 
                         let trader_price = item_price.cstrade
-                                                            .as_ref()
-                                                            .and_then(|cstrade| cstrade.price);
+                            .as_ref()
+                            .and_then(|cstrade| cstrade.price);
                         let skinport_price = item_price.skinport
-                                                            .as_ref()
-                                                            .and_then(|skinport| skinport.starting_at);
+                            .as_ref()
+                            .and_then(|skinport| skinport.starting_at);
                         let buff_price = item_price.buff163.starting_at
-                                                            .as_ref()
-                                                            .and_then(|starting_at| starting_at.price);
+                            .as_ref()
+                            .and_then(|starting_at| starting_at.price);
 
                         Priced {
                             info: item.clone(),

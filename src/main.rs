@@ -52,7 +52,8 @@ async fn main() {
         .options(poise::FrameworkOptions {
             commands: vec![
                 help::help(),
-                price::price()
+                price::price(),
+                inventory::inv()
             ],
             prefix_options: poise::PrefixFrameworkOptions {
                 prefix: Some("-".into()),
