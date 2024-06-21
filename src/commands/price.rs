@@ -95,7 +95,7 @@ pub async fn price(
             .components(components)
     } else {
         let embed = serenity::CreateEmbed::default()
-            .title(":x: Item could not be found")
+            .title(":x:  Item could not be found")
             .color(serenity::Color::RED)
             .to_owned();
 
