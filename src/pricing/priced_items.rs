@@ -154,11 +154,14 @@ pub async fn consolidate_prices() -> Result<HashMap<String, Priced>, Box<dyn std
                             buff: None,
                         }
                     } else {
-                        let steam_price = item_price.steam.last_24h
+                        let mut steam_price = item_price.steam.last_24h
                                                         .or(item_price.steam.last_7d)
                                                         .or(item_price.steam.last_30d)
                                                         .or(item_price.steam.last_90d);
                         
+                        if steam_price == Some(0.0) {
+                            steam_price = None
+                        }
 
                         let trader_price = item_price.cstrade
                                                             .as_ref()

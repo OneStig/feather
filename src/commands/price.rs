@@ -36,16 +36,34 @@ pub async fn price(
     item_name: String
 ) -> Result<(), Error> {
     let reply = if let Some(found_skin) = &ctx.data().item_data.get(&item_name) {
+        let imgurl = match &found_skin.info.image {
+            Some(imgurl) => imgurl,
+            None => ""
+        };
+
         let embed = serenity::CreateEmbed::default()
             .title(format!("{}", item_name))
             // .description("Feather is a CS2 item/inventory price checker")
             .color(serenity::Color::from((42, 55, 126)))
             .fields(vec![
-                ("Suggested Price", format!("${}", match found_skin.feather {
-                    Some(p) => format!("{:.2}", p),
+                ("<:botchicken:740299794550882324>  ·  Suggested Price", match found_skin.feather {
+                    Some(p) => format!("${:.2}", p),
                     None => "Error".to_string()
-                }), true),
+                }, true),
+                ("<:steam:740300441044123669>  ·  Steam Market", match found_skin.steam {
+                    Some(p) => format!("${:.2}", p),
+                    None => "Error".to_string()
+                }, true),
+                ("<:skinport:747619241250783353>  ·  Skinport", match found_skin.skinport {
+                    Some(p) => format!("${:.2}", p),
+                    None => "Error".to_string()
+                }, true),
+                ("<:buff163:801522918776766526>  ·  buff.163", match found_skin.buff {
+                    Some(p) => format!("${:.2}", p),
+                    None => "Error".to_string()
+                }, true),
             ])
+            .thumbnail(imgurl)
             .to_owned();
 
         let components = vec![serenity::CreateActionRow::Buttons(vec![
@@ -58,7 +76,7 @@ pub async fn price(
             .components(components)
     } else {
         let embed = serenity::CreateEmbed::default()
-            .title("Item could not be found")
+            .title(":x: Item could not be found")
             .color(serenity::Color::RED)
             .to_owned();
 
