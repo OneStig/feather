@@ -1,4 +1,4 @@
-use std::env;
+use std::{default, env};
 use std::sync::Arc;
 
 use mongodb::{Client, Database, Collection};
@@ -35,7 +35,21 @@ impl DatabaseManager {
     }
 
     pub async fn get_user(&self, user_id: &i64) -> mongodb::error::Result<Option<User>> {
-        self.users.find_one(doc! { "user_id": user_id }, None).await
+        match self.users.find_one(doc! { "user_id": user_id }, None).await? {
+            Some(user) => Ok(Some(user)),
+            None => {
+                let default_user = User {
+                    user_id: *user_id,
+                    steam_id: 0,
+                    currency: "USD".to_string(),
+                    cooldown: 0,
+                    value_history: vec![],
+                };
+
+                self.create_user(default_user.clone()).await?;
+                Ok(Some(default_user))
+            }
+        }
     }
 
     pub async fn create_user(&self, user: User) -> mongodb::error::Result<()> {
