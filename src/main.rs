@@ -20,6 +20,7 @@ use priced_items::{consolidate_prices, Priced};
 struct Data {
     config: Config,
     item_data: HashMap<String, Priced>,
+    all_hash_names: Vec<String>,
     db: Arc<Mutex<DatabaseManager>>,
 }
 
@@ -50,7 +51,9 @@ async fn main() {
             HashMap::new()
         }
     };
-    
+    let mut all_hash_names: Vec<String> = item_data.keys().cloned().collect();
+    all_hash_names.sort();
+
     // Load database manager, crash if fail
     let db = DatabaseManager::new().await.expect("Database failed to connect");
 
@@ -78,7 +81,8 @@ async fn main() {
                 Ok(Data { 
                     config,
                     item_data,
-                    db
+                    all_hash_names,
+                    db,
                 })
             })
         })

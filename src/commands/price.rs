@@ -23,9 +23,9 @@ async fn autocomplete_item<'a>(
     ctx: Context<'a>,
     partial: &'a str,
 ) -> impl Stream<Item = String> + 'a {
-    let item_data = &ctx.data().item_data;
+    let hash_names = &ctx.data().all_hash_names;
     
-    serenity::futures::stream::iter(item_data.keys())
+    serenity::futures::stream::iter(hash_names)
         .filter(move |item| serenity::futures::future::ready(smart_search(item, partial)))
         .map(|item| item.to_string())
         .take(15)
