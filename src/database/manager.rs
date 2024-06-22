@@ -2,7 +2,7 @@ use std::{default, env};
 use std::sync::Arc;
 
 use mongodb::{Client, Database, Collection};
-use mongodb::bson::doc;
+use mongodb::bson::{doc, to_bson};
 use mongodb::options::UpdateOptions;
 
 use tokio::sync::Mutex;
@@ -68,8 +68,32 @@ impl DatabaseManager {
     //     Ok(())
     // }
 
-    pub async fn get_guild(&self, guild_id: &str) -> mongodb::error::Result<Option<Guild>> {
-        self.guilds.find_one(doc! { "id": guild_id }, None).await
+    pub async fn get_guild(&self, guild_id: &i64) -> mongodb::error::Result<Option<Guild>> {
+        match self.guilds.find_one(doc! { "guild_id": guild_id }, None).await? {
+            Some(guild) => Ok(Some(guild)),
+            None => {
+                let default_guild = Guild {
+                    guild_id: *guild_id,
+                    roles: vec![],
+                };
+
+                self.create_guild(default_guild.clone()).await?;
+                Ok(Some(default_guild))
+            }
+        }
+    }
+
+    pub async fn update_guild(&self, guild: &Guild) -> mongodb::error::Result<()> {
+        let filter = doc! { "guild_id": &guild.guild_id };
+
+        let roles_bson = to_bson(&guild.roles)?;
+        let update = doc! { "$set": {
+            "roles": roles_bson,
+        }};
+        let options = UpdateOptions::builder().upsert(true).build();
+        
+        self.guilds.update_one(filter, update, options).await?;
+        Ok(())
     }
 
     pub async fn create_guild(&self, guild: Guild) -> mongodb::error::Result<()> {

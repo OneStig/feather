@@ -67,7 +67,11 @@ async fn main() {
             commands: vec![
                 help::help(),
                 price::price(),
-                inventory::inv()
+                inventory::inv(),
+                guild::invroles(),
+                guild::list(),
+                guild::add(),
+                guild::remove(),
             ],
             prefix_options: poise::PrefixFrameworkOptions {
                 prefix: Some("-".into()),
