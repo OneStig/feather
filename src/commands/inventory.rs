@@ -1,5 +1,76 @@
+use std::collections::HashMap;
+use std::env;
+
+use serde::Deserialize;
+
 use crate::{Context, Error};
+use crate::Priced;
+
 use poise::serenity_prelude as serenity;
+
+#[derive(Deserialize, Debug)]
+pub struct SteamWebAsset {
+    pub classid: String,
+}
+
+#[derive(Deserialize, Debug)]
+pub struct SteamWebDescription {
+    pub classid: String,
+    pub market_hash_name: String,
+    pub icon_url: String,
+}
+
+#[derive(Deserialize, Debug)]
+pub struct SteamWebResponse {
+    pub descriptions: Vec<SteamWebDescription>,
+    pub assets: Vec<SteamWebAsset>,
+}
+
+async fn compute_inventory_value(
+    item_data: &HashMap<String, Priced>,
+    steamid64: i64,
+    steamweb_token: &String
+) -> Result<(f64, i32), Box<dyn std::error::Error + Send + Sync>> {
+    let steamweb_url = format!("https://www.steamwebapi.com/steam/api/inventory?steam_id={}&key={}&parse=0",
+        steamid64,
+        steamweb_token
+    );
+
+    println!("{}", steamweb_url.clone());
+
+    let response = reqwest::get(steamweb_url.clone()).await?.text().await?;
+    let steamweb: SteamWebResponse = serde_json::from_str(&response)?;
+
+    // I don't know why Valve formats like this:
+    // 1. Place all descriptions into hash table by classid
+    let classid_lookup: HashMap<String, SteamWebDescription> = steamweb.descriptions
+        .into_iter()
+        .map(|desc| (desc.classid.clone(), desc))
+        .collect();
+
+    // 2. For each asset, lookup corresponding classid and compute price
+    let mut total_value = 0.0;
+    let mut total_count = 0;
+    let mut total_success = 0;
+
+    for asset in &steamweb.assets {
+        total_count += 1;
+        if let Some(description) = classid_lookup.get(&asset.classid) {
+            // this will need to be modified for dopplers
+            let modified_hash_name = description.market_hash_name.clone();
+            if let Some(price) = item_data.get(&modified_hash_name) {
+                if let Some(value) = price.feather {
+                    total_value += value;
+                    total_success += 1;
+                }
+            }
+        }
+    }
+
+    println!("inventory {}/{}", total_success, total_count);
+    Ok((total_value, total_success))
+}
+
 
 /// Check CS2 inventory value
 #[poise::command(
@@ -41,9 +112,13 @@ pub async fn inv(
                 embed = embed.title(":x:  This user's steam account is not linked")
             }
         } else {
-            // Query inventory api, compute value, then assign roles based on is_self
+            let (inv_value, item_count) = compute_inventory_value(&ctx.data().item_data, target_user.steam_id, &ctx.data().config.steamweb_token).await?;
 
-            embed = embed.title("asdf");
+            embed = embed.title("asdf").color(serenity::Color::from_rgb(0, 255, 0)).field("CS2 Inventory Value",
+                format!("**{}** items worth **${:.2}**\n Powered by [CSGOSkinPrice](https://www.csgoskinprice.com/)",
+                item_count,
+                inv_value),
+            false);
 
             components = Some(vec![serenity::CreateActionRow::Buttons(vec![
                 serenity::CreateButton::new_link(format!("https://steamcommunity.com/profiles/{}/inventory/730/", target_user.steam_id))
