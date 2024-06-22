@@ -41,6 +41,8 @@ pub async fn inv(
                 embed = embed.title(":x:  This user's steam account is not linked")
             }
         } else {
+            // Query inventory api, compute value, then assign roles based on is_self
+
             embed = embed.title("asdf");
 
             components = Some(vec![serenity::CreateActionRow::Buttons(vec![

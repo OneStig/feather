@@ -50,6 +50,11 @@ pub struct TItem {
     skinport: Option<PItem>,
     cstrade: Option<CItem>,
     buff163: BItem,
+
+    lootfarm: Option<f64>,
+    csgoempire: Option<f64>,
+    swapgg: Option<f64>,
+    skinwallet: Option<f64>,
 }
 
 #[derive(Debug)]
@@ -87,7 +92,7 @@ pub async fn refresh_prices() -> Result<HashMap<String, TItem>, Box<dyn std::err
 }
 
 fn power_mean(prices: &[f64]) -> Option<f64> {
-    const POWER: f64 = -4.0;
+    const POWER: f64 = -3.0;
 
     if prices.is_empty() {
         return None;
@@ -195,15 +200,21 @@ pub async fn consolidate_prices() -> Result<HashMap<String, Priced>, Box<dyn std
                         Priced {
                             info: item.clone(),
                             feather: {
-                                let prices: Vec<f64> = [
+                                let mut prices: Vec<f64> = [
                                     steam_price,
                                     trader_price,
                                     skinport_price,
-                                    buff_price
+                                    buff_price,
+                                    item_price.lootfarm,
+                                    item_price.csgoempire,
+                                    item_price.swapgg,
+                                    item_price.skinwallet,
                                 ]
                                 .iter()
                                 .filter_map(|&price| price)
                                 .collect();
+                                
+                                prices.retain(|&price| price != 0.0);
 
                                 power_mean(&prices) 
                             },
