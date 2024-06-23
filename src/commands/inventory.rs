@@ -1,13 +1,12 @@
 use std::collections::HashMap;
-use std::env;
 
 use serde::Deserialize;
 
 use crate::{Context, Error};
 use crate::Priced;
+use crate::currency::exchange;
 
 use poise::serenity_prelude as serenity;
-use serenity::model::id::RoleId;
 
 #[derive(Deserialize, Debug)]
 pub struct SteamWebAsset {
@@ -116,11 +115,12 @@ pub async fn inv(
 
             let (inv_value, item_count) = compute_inventory_value(&ctx.data().item_data, target_user.steam_id, &ctx.data().config.steamweb_token).await?;
 
-            embed = embed.title(format!("{}'s CS2 Inventory", target.name)).color(serenity::Color::from_rgb(0, 255, 0)).field("CS2 Inventory Value",
-                format!("**{}** items worth **${:.2}**\n Powered by [CS Backpack](https://www.csbackpack.net/)",
+            embed = embed.title(format!("{}'s CS2 Inventory", target.name)).color(serenity::Color::from_rgb(0, 255, 0))
+                .field(format!("CS2 Inventory Value ({})", author_user.currency),
+                format!("**{}** items worth **{}**\n Powered by [CS Backpack](https://www.csbackpack.net/)",
                 item_count,
-                inv_value),
-            false);
+                exchange(inv_value, &author_user.currency, &ctx).await
+            ), false);
 
             components = Some(vec![serenity::CreateActionRow::Buttons(vec![
                 serenity::CreateButton::new_link(format!("https://steamcommunity.com/profiles/{}/inventory/730/", target_user.steam_id))

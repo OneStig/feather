@@ -3,6 +3,8 @@ use std::fs;
 use std::collections::HashMap;
 use serde::Deserialize;
 
+use crate::Context;
+
 macro_rules! create_currency_formats {
     ($($code:expr => $format:expr),*) => {{
         let mut map = HashMap::new();
@@ -16,6 +18,11 @@ macro_rules! create_currency_formats {
 #[derive(Deserialize, Clone, Debug)]
 pub struct ExchangeRates {
     pub conversion_rates: HashMap<String, f64>,
+}
+
+pub async fn exchange(amount: f64, code: &str, ctx: &Context<'_>) -> String {
+    ctx.data().currency_formats.get(code).unwrap_or(&"${}".to_string()).replace("{}", 
+        &format!("{:.2}", amount * ctx.data().conversion_rates.get(code).unwrap_or(&1.0)))
 }
 
 const EXCHANGE_FILE: &str = "exchange.json";

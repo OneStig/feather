@@ -1,6 +1,8 @@
 use serenity::futures::{Stream, StreamExt};
 use poise::serenity_prelude as serenity;
+
 use crate::{Context, Error};
+use crate::currency::exchange;
 
 fn smart_search(item: &str, query: &str) -> bool {
     
@@ -42,7 +44,12 @@ pub async fn price(
     #[autocomplete = "autocomplete_item"]
     item_name: String
 ) -> Result<(), Error> {
+    let author_id = ctx.author().id.get() as i64;
+    let db = ctx.data().db.lock().await;
+
     let reply = if let Some(found_skin) = &ctx.data().item_data.get(&item_name) {
+        let author_user = db.get_user(&author_id).await?.unwrap();
+
         let rarity_color = match &found_skin.info.rarity {
             Some(rarity) => {
                 serenity::Color::from_rgb(
@@ -59,19 +66,19 @@ pub async fn price(
             .color(rarity_color)
             .fields(vec![
                 ("<:botchicken:740299794550882324>  ·  Suggested Price", match found_skin.feather {
-                    Some(p) => format!("${:.2}", p),
+                    Some(p) => exchange(p, &author_user.currency, &ctx).await,
                     None => "Error".to_string()
                 }, true),
                 ("<:steam:740300441044123669>  ·  Steam Market", match found_skin.steam {
-                    Some(p) => format!("${:.2}", p),
+                    Some(p) => exchange(p, &author_user.currency, &ctx).await,
                     None => "Error".to_string()
                 }, true),
                 ("<:skinport:747619241250783353>  ·  Skinport", match found_skin.skinport {
-                    Some(p) => format!("${:.2}", p),
+                    Some(p) => exchange(p, &author_user.currency, &ctx).await,
                     None => "Error".to_string()
                 }, true),
                 ("<:buff163:801522918776766526>  ·  buff.163", match found_skin.buff {
-                    Some(p) => format!("${:.2}", p),
+                    Some(p) => exchange(p, &author_user.currency, &ctx).await,
                     None => "Error".to_string()
                 }, true),
             ])

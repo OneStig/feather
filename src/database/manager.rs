@@ -61,6 +61,7 @@ impl DatabaseManager {
         let filter = doc! { "user_id": &user.user_id };
         let update = doc! { "$set": {
             "currency": &user.currency,
+            "steam_id": &user.steam_id
         }};
         let options = UpdateOptions::builder().upsert(true).build();
         
