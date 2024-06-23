@@ -52,7 +52,7 @@ pub async fn currency(
             .color(serenity::Color::RED)
     }
     
-    let mut reply = poise::CreateReply::default().embed(embed);
+    let reply = poise::CreateReply::default().embed(embed);
 
     ctx.send(reply).await?;
     Ok(())
@@ -87,7 +87,7 @@ pub async fn unlink(
             .color(serenity::Color::RED)
     }
     
-    let mut reply = poise::CreateReply::default().embed(embed);
+    let reply = poise::CreateReply::default().embed(embed);
 
     ctx.send(reply).await?;
     Ok(())

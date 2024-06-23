@@ -13,7 +13,7 @@ const NOT_GUILD_MSG: &str = "Command can only be used in a guild";
     required_permissions = "MANAGE_GUILD",
     subcommands("list", "add", "remove")
 )]
-pub async fn invroles(ctx: Context<'_>) -> Result<(), Error> {
+pub async fn invroles(_ctx: Context<'_>) -> Result<(), Error> {
     Ok(())
 }
 
@@ -28,7 +28,6 @@ pub async fn list(ctx: Context<'_>) -> Result<(), Error> {
     let db = ctx.data().db.lock().await;
 
     let mut embed = serenity::CreateEmbed::default().to_owned();
-    let mut components = None;
 
     if let Some(guild) = db.get_guild(&guild_id).await? {
         embed = embed
@@ -52,11 +51,7 @@ pub async fn list(ctx: Context<'_>) -> Result<(), Error> {
             .color(serenity::Color::RED)
     }
     
-    let mut reply = poise::CreateReply::default().embed(embed);
-    
-    if let Some(some_cmp) = components {
-        reply = reply.components(some_cmp);
-    }
+    let reply = poise::CreateReply::default().embed(embed);
 
     ctx.send(reply).await?;
 
@@ -80,7 +75,6 @@ pub async fn add(
     let db = ctx.data().db.lock().await;
 
     let mut embed = serenity::CreateEmbed::default().to_owned();
-    let mut components = None;
 
     if let Some(mut guild) = db.get_guild(&guild_id).await? {
         guild.roles.push(
@@ -101,11 +95,7 @@ pub async fn add(
             .color(serenity::Color::RED)
     }
     
-    let mut reply = poise::CreateReply::default().embed(embed);
-    
-    if let Some(some_cmp) = components {
-        reply = reply.components(some_cmp);
-    }
+    let reply = poise::CreateReply::default().embed(embed);
 
     ctx.send(reply).await?;
     
@@ -127,7 +117,6 @@ pub async fn remove(
     let db = ctx.data().db.lock().await;
 
     let mut embed = serenity::CreateEmbed::default().to_owned();
-    let mut components = None;
 
     if let Some(mut guild) = db.get_guild(&guild_id).await? {
         guild.roles.retain(|vec_role| vec_role.role_id != role.id.get() as i64);
@@ -144,11 +133,7 @@ pub async fn remove(
             .color(serenity::Color::RED)
     }
     
-    let mut reply = poise::CreateReply::default().embed(embed);
-    
-    if let Some(some_cmp) = components {
-        reply = reply.components(some_cmp);
-    }
+    let reply = poise::CreateReply::default().embed(embed);
 
     ctx.send(reply).await?;
     

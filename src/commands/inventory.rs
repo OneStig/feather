@@ -48,11 +48,11 @@ async fn compute_inventory_value(
 
     // 2. For each asset, lookup corresponding classid and compute price
     let mut total_value = 0.0;
-    let mut total_count = 0;
+    // let mut total_count = 0;
     let mut total_success = 0;
 
     for asset in &steamweb.assets {
-        total_count += 1;
+        // total_count += 1;
         if let Some(description) = classid_lookup.get(&asset.classid) {
             // this will need to be modified for dopplers
             let modified_hash_name = description.market_hash_name.clone();

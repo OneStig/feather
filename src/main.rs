@@ -14,7 +14,7 @@ mod pricing;
 // Re-exports from local
 use commands::*;
 use config::Config;
-use database::{DatabaseManager, User, Guild};
+use database::DatabaseManager;
 use pricing::*;
 use priced_items::{consolidate_prices, Priced};
 

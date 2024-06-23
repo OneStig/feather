@@ -93,8 +93,8 @@ pub async fn price(
         }
 
         let components = vec![serenity::CreateActionRow::Buttons(vec![
-            serenity::CreateButton::new_link(&ctx.data().config.invite_link)
-                .label("Purchase Item")
+            // serenity::CreateButton::new_link(&ctx.data().config.invite_link)
+            //     .label("Purchase Item")
         ])];
 
         poise::CreateReply::default()

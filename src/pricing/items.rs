@@ -9,7 +9,7 @@ pub struct Rarity {
 
 #[derive(Deserialize, Clone, Debug)]
 pub struct Item {
-    pub id: String,
+    // pub id: String,
     pub market_hash_name: Option<String>,
     pub image: Option<String>,
     pub rarity: Option<Rarity>,

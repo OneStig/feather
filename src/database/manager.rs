@@ -1,7 +1,7 @@
-use std::{default, env};
+use std::env;
 use std::sync::Arc;
 
-use mongodb::{Client, Database, Collection};
+use mongodb::{Client, Collection};
 use mongodb::bson::{doc, to_bson};
 use mongodb::options::UpdateOptions;
 
@@ -10,8 +10,8 @@ use tokio::sync::Mutex;
 use super::models::{User, Guild};
 
 pub struct DatabaseManager {
-    client: Client,
-    db: Database,
+    // client: Client,
+    // db: Database,
     users: Collection<User>,
     guilds: Collection<Guild>,
 }
@@ -27,8 +27,8 @@ impl DatabaseManager {
         println!("Database successfully connected");
 
         Ok(Arc::new(Mutex::new(Self {
-            client,
-            db,
+            // client,
+            // db,
             users,
             guilds,
         })))
