@@ -1,5 +1,6 @@
 use std::{collections::HashMap, sync::Arc};
 
+use currency::load_exchange_rates;
 // External crates
 use poise::serenity_prelude as serenity;
 use tokio::sync::Mutex;
@@ -21,6 +22,9 @@ struct Data {
     config: Config,
     item_data: HashMap<String, Priced>,
     all_hash_names: Vec<String>,
+    all_currency_codes: Vec<String>,
+    currency_formats: HashMap<String, String>,
+    conversion_rates: HashMap<String, f64>,
     db: Arc<Mutex<DatabaseManager>>,
 }
 
@@ -51,8 +55,17 @@ async fn main() {
             HashMap::new()
         }
     };
+
     let mut all_hash_names: Vec<String> = item_data.keys().cloned().collect();
     all_hash_names.sort();
+
+    // Currency information
+    let (currency_data, currency_formats) = load_exchange_rates().await.expect("Failed to load currencies");
+
+    let mut all_currency_codes: Vec<String> = currency_formats.keys().cloned().collect();
+    all_currency_codes.sort();
+
+    let conversion_rates = currency_data.conversion_rates;
 
     // Load database manager, crash if fail
     let db = DatabaseManager::new().await.expect("Database failed to connect");
@@ -67,11 +80,16 @@ async fn main() {
             commands: vec![
                 help::help(),
                 price::price(),
+
                 inventory::inv(),
+
                 guild::invroles(),
                 guild::list(),
                 guild::add(),
                 guild::remove(),
+
+                utility::currency(),
+                utility::unlink(),
             ],
             prefix_options: poise::PrefixFrameworkOptions {
                 prefix: Some("-".into()),
@@ -86,6 +104,9 @@ async fn main() {
                     config,
                     item_data,
                     all_hash_names,
+                    all_currency_codes,
+                    currency_formats,
+                    conversion_rates,
                     db,
                 })
             })

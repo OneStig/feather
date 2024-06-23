@@ -57,16 +57,16 @@ impl DatabaseManager {
         Ok(())
     }
 
-    // pub async fn update_user(&self, user: &User) -> mongodb::error::Result<()> {
-    //     let filter = doc! { "id": &user.id };
-    //     let update = doc! { "$set": {
-    //         "name": &user.name,
-    //     }};
-    //     let options = UpdateOptions::builder().upsert(true).build();
+    pub async fn update_user(&self, user: &User) -> mongodb::error::Result<()> {
+        let filter = doc! { "user_id": &user.user_id };
+        let update = doc! { "$set": {
+            "currency": &user.currency,
+        }};
+        let options = UpdateOptions::builder().upsert(true).build();
         
-    //     self.users.update_one(filter, update, options).await?;
-    //     Ok(())
-    // }
+        self.users.update_one(filter, update, options).await?;
+        Ok(())
+    }
 
     pub async fn get_guild(&self, guild_id: &i64) -> mongodb::error::Result<Option<Guild>> {
         match self.guilds.find_one(doc! { "guild_id": guild_id }, None).await? {

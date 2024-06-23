@@ -21,3 +21,4 @@ Cargo.lock
 all.json
 /.vscode
 prices.json
+exchange.json
