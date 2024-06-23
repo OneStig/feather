@@ -93,7 +93,8 @@ pub async fn price(
         }
 
         let components = vec![serenity::CreateActionRow::Buttons(vec![
-            // serenity::CreateButton::new_link(&ctx.data().config.invite_link)
+            serenity::CreateButton::new("purchase").label("Purchase Item").disabled(true)
+            // serenity::CreateButton::new_link("")
             //     .label("Purchase Item")
         ])];
 

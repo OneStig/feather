@@ -8,18 +8,20 @@ use poise::serenity_prelude as serenity;
     category = "Utility")
 ]
 pub async fn help( ctx: Context<'_>) -> Result<(), Error> {
-    let footer = serenity::CreateEmbedFooter::new("Test footer");
-    
     let reply = {
+        const ICON_URL: &str = "https://cdn.discordapp.com/avatars/371822760499871756/1caf027942b849dd774030ec8b333c10.webp";
         let embed = serenity::CreateEmbed::default()
-            .title("Feather Help")
+            .author(serenity::CreateEmbedAuthor::new("Feather Help").icon_url(ICON_URL))
             .description("Feather is a CS2 item/inventory price checker")
-            .color(serenity::Color::from((42, 55, 126)))
+            .color(serenity::Color::from((38, 59, 127)))
             .fields(vec![
-                ("title", "body", true),
-                ("title", "body", true),
+                ("Pricecheck Items", "`/price`", true),
+                ("Pricecheck Inventory", "`/inv`", true),
+                ("Set currency", "`/currency`", true),
+                ("Unlink steam", "`/currency`", true),
+                ("Server settings", "`/invroles`", true),
+                ("Support Server", "[Join Server](https://discord.gg/hh9v4eF)", true)
             ])
-            .footer(footer)
             .to_owned();
 
         let components = vec![serenity::CreateActionRow::Buttons(vec![
