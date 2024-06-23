@@ -13,6 +13,5 @@ RUST_LOG=debug
 
 ### Todo
 1. Fix doppler price eval in inventories
-2. Add oauth2 inventory linking
-3. Redo role assignment system in guilds
-4. Add currency conversions
+2. Add currency conversions
+3. Make /price autocomplete efficient with caching

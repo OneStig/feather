@@ -11,7 +11,7 @@ const NOT_GUILD_MSG: &str = "Command can only be used in a guild";
     slash_command, guild_only,
     category = "Guild settings",
     required_permissions = "MANAGE_GUILD",
-    subcommands("list", "add")
+    subcommands("list", "add", "remove")
 )]
 pub async fn invroles(ctx: Context<'_>) -> Result<(), Error> {
     Ok(())

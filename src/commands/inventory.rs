@@ -7,6 +7,7 @@ use crate::{Context, Error};
 use crate::Priced;
 
 use poise::serenity_prelude as serenity;
+use serenity::model::id::RoleId;
 
 #[derive(Deserialize, Debug)]
 pub struct SteamWebAsset {
@@ -35,8 +36,6 @@ async fn compute_inventory_value(
         steamid64,
         steamweb_token
     );
-
-    println!("{}", steamweb_url.clone());
 
     let response = reqwest::get(steamweb_url.clone()).await?.text().await?;
     let steamweb: SteamWebResponse = serde_json::from_str(&response)?;
@@ -67,7 +66,6 @@ async fn compute_inventory_value(
         }
     }
 
-    println!("inventory {}/{}", total_success, total_count);
     Ok((total_value, total_success))
 }
 
@@ -90,7 +88,9 @@ pub async fn inv(
     
     let db = ctx.data().db.lock().await;
     
-    let mut embed = serenity::CreateEmbed::default().to_owned();
+    const ICON_URL: &str = "https://cdn.discordapp.com/avatars/371822760499871756/1caf027942b849dd774030ec8b333c10.webp";
+    let mut embed = serenity::CreateEmbed::default()
+        .author(serenity::CreateEmbedAuthor::new("Feather Inventory Valuation").icon_url(ICON_URL)).to_owned();
     let mut components = None;
     
     
@@ -104,7 +104,7 @@ pub async fn inv(
                 embed = embed.title(":x:  Your steam account is not linked");
 
                 components = Some(vec![serenity::CreateActionRow::Buttons(vec![
-                    serenity::CreateButton::new_link("http://feather.theseven.dev")
+                    serenity::CreateButton::new_link("http://feather.theseven.dev/auth/discord")
                         .label("Link Account")
                 ])]);
             }
@@ -112,10 +112,12 @@ pub async fn inv(
                 embed = embed.title(":x:  This user's steam account is not linked")
             }
         } else {
+            // Able to evaluate the inventory
+
             let (inv_value, item_count) = compute_inventory_value(&ctx.data().item_data, target_user.steam_id, &ctx.data().config.steamweb_token).await?;
 
-            embed = embed.title("asdf").color(serenity::Color::from_rgb(0, 255, 0)).field("CS2 Inventory Value",
-                format!("**{}** items worth **${:.2}**\n Powered by [CSGOSkinPrice](https://www.csgoskinprice.com/)",
+            embed = embed.title(format!("{}'s CS2 Inventory", target.name)).color(serenity::Color::from_rgb(0, 255, 0)).field("CS2 Inventory Value",
+                format!("**{}** items worth **${:.2}**\n Powered by [CS Backpack](https://www.csbackpack.net/)",
                 item_count,
                 inv_value),
             false);
@@ -124,6 +126,30 @@ pub async fn inv(
                 serenity::CreateButton::new_link(format!("https://steamcommunity.com/profiles/{}/inventory/730/", target_user.steam_id))
                     .label("View Inventory")
             ])]);
+
+            // Perform role assignment
+            if let Some(guild_id) = ctx.guild_id() {
+                let g_id = guild_id.get() as i64;
+                if let Some(current_guild) = db.get_guild(&g_id).await? {
+                    for role in current_guild.roles {
+                        if inv_value >= role.threshold {
+                            if let Some((role_id, _)) = guild_id.roles(&ctx).await?.iter().find(|(x, _)| x.get() as i64 == role.role_id) {
+                                let member = guild_id.member(&ctx, ctx.author().id).await?;
+                                match member.add_role(&ctx, role_id).await {
+                                    Ok(_) => {
+                                        embed = embed.field("Role Assigned", format!("<@&{}>", role_id.get()), false);
+                                    },
+                                    Err(e) => {
+                                        embed = embed.field("Error adding role", e.to_string(), false);
+                                    }
+                                }
+                            }
+
+                            break;
+                        }
+                    }
+                }
+            }
         }
     }
     else {
