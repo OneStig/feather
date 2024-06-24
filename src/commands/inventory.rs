@@ -28,6 +28,7 @@ pub struct SteamWebResponse {
 
 async fn compute_inventory_value(
     item_data: &HashMap<String, Priced>,
+    doppler_data: &HashMap<String, String>,
     steamid64: i64,
     steamweb_token: &String
 ) -> Result<(f64, i32), Box<dyn std::error::Error + Send + Sync>> {
@@ -55,7 +56,12 @@ async fn compute_inventory_value(
         // total_count += 1;
         if let Some(description) = classid_lookup.get(&asset.classid) {
             // this will need to be modified for dopplers
-            let modified_hash_name = description.market_hash_name.clone();
+            let mut modified_hash_name = description.market_hash_name.clone();
+            
+            if let Some(doppler) = doppler_data.get(&description.icon_url) {
+                modified_hash_name += &format!(" {}", doppler);
+            }
+
             if let Some(price) = item_data.get(&modified_hash_name) {
                 if let Some(value) = price.feather {
                     total_value += value;
@@ -79,11 +85,11 @@ pub async fn inv(
     #[description = "User to check CS2 inventory"]
     user: Option<serenity::User>
 ) -> Result<(), Error> {
-    let is_self: bool = user == None;
 
     let target = user.as_ref().unwrap_or_else(|| ctx.author());
     let user_id = target.id.get() as i64;
     let author_id = ctx.author().id.get() as i64;
+    let is_self: bool = user_id == author_id;
     
     let db = ctx.data().db.lock().await;
     
@@ -113,7 +119,7 @@ pub async fn inv(
         } else {
             // Able to evaluate the inventory
 
-            let (inv_value, item_count) = compute_inventory_value(&ctx.data().item_data, target_user.steam_id, &ctx.data().config.steamweb_token).await?;
+            let (inv_value, item_count) = compute_inventory_value(&ctx.data().item_data, &ctx.data().doppler_data, target_user.steam_id, &ctx.data().config.steamweb_token).await?;
 
             embed = embed.title(format!("{}'s CS2 Inventory", target.name)).color(serenity::Color::from_rgb(0, 255, 0))
                 .field(format!("CS2 Inventory Value ({})", author_user.currency),

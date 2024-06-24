@@ -21,6 +21,7 @@ use priced_items::{consolidate_prices, Priced};
 struct Data {
     config: Config,
     item_data: HashMap<String, Priced>,
+    doppler_data: HashMap<String, String>,
     all_hash_names: Vec<String>,
     all_currency_codes: Vec<String>,
     currency_formats: HashMap<String, String>,
@@ -48,16 +49,26 @@ async fn main() {
     let token = config.discord_token.clone();
 
     // Load item information, but don't crash if fail
-    let item_data = match consolidate_prices().await {
+    let (item_data, doppler_data) = match consolidate_prices().await {
         Ok(items) => items,
         Err(e) => {
             eprintln!("Failed to pull items: {}", e);
-            HashMap::new()
+            (HashMap::new(), HashMap::new())
         }
     };
 
     let mut all_hash_names: Vec<String> = item_data.keys().cloned().collect();
-    all_hash_names.sort();
+    all_hash_names.sort_by(|a, b| {
+        let count_a = a.split_whitespace().count();
+        let count_b = b.split_whitespace().count();
+
+        let word_count_cmp = count_a.cmp(&count_b);
+        if word_count_cmp == std::cmp::Ordering::Equal {
+            a.cmp(b)
+        } else {
+            word_count_cmp
+        }
+    });
 
     // Currency information
     let (currency_data, currency_formats) = load_exchange_rates().await.expect("Failed to load currencies");
@@ -103,6 +114,7 @@ async fn main() {
                 Ok(Data { 
                     config,
                     item_data,
+                    doppler_data,
                     all_hash_names,
                     all_currency_codes,
                     currency_formats,

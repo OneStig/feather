@@ -67,6 +67,13 @@ pub struct Priced {
     pub buff: Option<f64>
 }
 
+const LOCAL_DOPPLER: &str = "doppler.json";
+async fn load_doppler() -> Result<HashMap<String, String>, Box<dyn std::error::Error>> {
+    let data = fs::read_to_string(LOCAL_DOPPLER)?;
+    let dopplers: HashMap<String, String> = serde_json::from_str(&data)?;
+    Ok(dopplers)
+}
+
 const LOCAL_PRICES: &str = "prices.json";
 const API_PRICES: &str = "https://prices.csgotrader.app/latest/prices_v6.json";
 
@@ -104,7 +111,7 @@ fn power_mean(prices: &[f64]) -> Option<f64> {
     Some((sum / n).powf(1.0 / POWER))
 }
 
-pub async fn consolidate_prices() -> Result<HashMap<String, Priced>, Box<dyn std::error::Error>> {
+pub async fn consolidate_prices() -> Result<(HashMap<String, Priced>, HashMap<String, String>), Box<dyn std::error::Error>> {
     let item_info = match scrape_items().await {
         Ok(items) => items,
         Err(e) => {
@@ -131,6 +138,9 @@ pub async fn consolidate_prices() -> Result<HashMap<String, Priced>, Box<dyn std
             }
         }
     };
+
+    let doppler_data = load_doppler().await.expect("Failed to load doppler data");
+    println!("Loaded doppler data");
 
     let mut priced_items: HashMap<String, Priced> = HashMap::new();
     let mut success_count = 0;
@@ -241,5 +251,5 @@ pub async fn consolidate_prices() -> Result<HashMap<String, Priced>, Box<dyn std
 
     println!("Processed {}/{} items", success_count, priced_items.len());
 
-    return Ok(priced_items);
+    return Ok((priced_items, doppler_data));
 }

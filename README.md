@@ -13,5 +13,5 @@ RUST_LOG=debug
 ```
 
 ### Todo
-1. Fix doppler price eval in inventories
-2. Make /price autocomplete efficient with caching
+1. Make /price autocomplete efficient with caching
+2. Improve embed UIs and colors
