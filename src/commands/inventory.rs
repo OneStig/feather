@@ -26,19 +26,40 @@ pub struct SteamWebResponse {
     pub assets: Vec<SteamWebAsset>,
 }
 
-async fn compute_inventory_value(
-    item_data: &HashMap<String, Priced>,
-    doppler_data: &HashMap<String, String>,
-    steamid64: i64,
-    steamweb_token: &String
-) -> Result<(f64, i32), Box<dyn std::error::Error + Send + Sync>> {
-    let steamweb_url = format!("https://www.steamwebapi.com/steam/api/inventory?steam_id={}&key={}&parse=0",
-        steamid64,
-        steamweb_token
-    );
 
-    let response = reqwest::get(steamweb_url.clone()).await?.text().await?;
-    let steamweb: SteamWebResponse = serde_json::from_str(&response)?;
+#[derive(Deserialize, Debug)]
+pub struct SteamSummaryPlayer {
+    personaname: String,
+    avatarfull: String,
+}
+
+#[derive(Deserialize, Debug)]
+pub struct SteamSummaryWrapper {
+    pub players: Vec<SteamSummaryPlayer>,
+}
+
+#[derive(Deserialize, Debug)]
+pub struct SteamSummaryResponse {
+    pub response: SteamSummaryWrapper,
+}
+
+async fn compute_inventory_value(
+    ctx: &Context<'_>,
+    steamid64: i64,
+) -> Result<(f64, i32), Box<dyn std::error::Error + Send + Sync>> {
+    let item_data: &HashMap<String, Priced> = &ctx.data().item_data;
+    let doppler_data: &HashMap<String, String> = &ctx.data().doppler_data;
+
+    let steamweb: SteamWebResponse;
+    {
+        let steamweb_token = &ctx.data().config.steamweb_token;
+        let steamweb_url = format!("https://www.steamwebapi.com/steam/api/inventory?steam_id={}&key={}&parse=0",
+            steamid64,
+            steamweb_token
+        );
+        let response = reqwest::get(steamweb_url).await?.text().await?;
+        steamweb = serde_json::from_str(&response)?;
+    }
 
     // I don't know why Valve formats like this:
     // 1. Place all descriptions into hash table by classid
@@ -119,18 +140,38 @@ pub async fn inv(
         } else {
             // Able to evaluate the inventory
 
-            let (inv_value, item_count) = compute_inventory_value(&ctx.data().item_data, &ctx.data().doppler_data, target_user.steam_id, &ctx.data().config.steamweb_token).await?;
+            let (inv_value, item_count) = compute_inventory_value(&ctx, target_user.steam_id).await?;
 
-            embed = embed.title(format!("{}'s CS2 Inventory", target.name)).color(serenity::Color::from_rgb(0, 255, 0))
-                .field(format!("CS2 Inventory Value ({})", author_user.currency),
-                format!("**{}** items worth **{}**\n Powered by [CS Backpack](https://www.csbackpack.net/)",
-                item_count,
-                exchange(inv_value, &author_user.currency, &ctx).await
-            ), false);
+            let steam_summary: SteamSummaryResponse;
+            {
+                let steam_token = &ctx.data().config.steam_token;
+                let steam_summary_url = format!("http://api.steampowered.com/ISteamUser/GetPlayerSummaries/v0002/?key={}&steamids={}",
+                    steam_token,
+                    target_user.steam_id
+                );
+                let response = reqwest::get(steam_summary_url).await?.text().await?;
+                steam_summary = serde_json::from_str(&response)?;
+            }
+
+            let steam_player: &SteamSummaryPlayer = &steam_summary.response.players[0];
+
+            embed = embed.title(format!("{}'s CS2 Inventory", steam_player.personaname))
+                .description(format!("Account of <@{}>", user_id))
+                .thumbnail(steam_player.avatarfull.clone())
+                .color(serenity::Color::from_rgb(254, 171, 26))
+                .field(
+                    format!("CS2 Inventory Value ({})", author_user.currency),
+                    format!("**{}** items worth **{}**\n Powered by [CS Backpack](https://www.csbackpack.net/)",
+                        item_count,
+                        exchange(inv_value, &author_user.currency, &ctx).await
+                    ),
+                false);
 
             components = Some(vec![serenity::CreateActionRow::Buttons(vec![
                 serenity::CreateButton::new_link(format!("https://steamcommunity.com/profiles/{}/inventory/730/", target_user.steam_id))
-                    .label("View Inventory")
+                    .label("View Inventory"),
+                serenity::CreateButton::new_link("https://skinport.com/r/botchicken")
+                    .label("Purchase Skins"),
             ])]);
 
             // Perform role assignment
@@ -141,6 +182,7 @@ pub async fn inv(
                         if inv_value >= role.threshold {
                             if let Some((role_id, _)) = guild_id.roles(&ctx).await?.iter().find(|(x, _)| x.get() as i64 == role.role_id) {
                                 let member = guild_id.member(&ctx, ctx.author().id).await?;
+
                                 match member.add_role(&ctx, role_id).await {
                                     Ok(_) => {
                                         embed = embed.field("Role Assigned", format!("<@&{}>", role_id.get()), false);
