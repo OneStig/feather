@@ -175,25 +175,27 @@ pub async fn inv(
             ])]);
 
             // Perform role assignment
-            if let Some(guild_id) = ctx.guild_id() {
-                let g_id = guild_id.get() as i64;
-                if let Some(current_guild) = db.get_guild(&g_id).await? {
-                    for role in current_guild.roles {
-                        if inv_value >= role.threshold {
-                            if let Some((role_id, _)) = guild_id.roles(&ctx).await?.iter().find(|(x, _)| x.get() as i64 == role.role_id) {
-                                let member = guild_id.member(&ctx, ctx.author().id).await?;
+            if is_self {
+                if let Some(guild_id) = ctx.guild_id() {
+                    let g_id = guild_id.get() as i64;
+                    if let Some(current_guild) = db.get_guild(&g_id).await? {
+                        for role in current_guild.roles {
+                            if inv_value >= role.threshold {
+                                if let Some((role_id, _)) = guild_id.roles(&ctx).await?.iter().find(|(x, _)| x.get() as i64 == role.role_id) {
+                                    let member = guild_id.member(&ctx, ctx.author().id).await?;
 
-                                match member.add_role(&ctx, role_id).await {
-                                    Ok(_) => {
-                                        embed = embed.field("Role Assigned", format!("<@&{}>", role_id.get()), false);
-                                    },
-                                    Err(e) => {
-                                        embed = embed.field("Error adding role", e.to_string(), false);
+                                    match member.add_role(&ctx, role_id).await {
+                                        Ok(_) => {
+                                            embed = embed.field("Role Assigned", format!("<@&{}>", role_id.get()), false);
+                                        },
+                                        Err(e) => {
+                                            embed = embed.field("Error adding role", e.to_string(), false);
+                                        }
                                     }
                                 }
-                            }
 
-                            break;
+                                break;
+                            }
                         }
                     }
                 }
