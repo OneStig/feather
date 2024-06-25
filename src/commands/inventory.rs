@@ -138,68 +138,78 @@ pub async fn inv(
                 embed = embed.title(":x:  This user's steam account is not linked")
             }
         } else {
-            // Able to evaluate the inventory
+            // Steam account is linked, check if we can evaluate or not
 
-            let (inv_value, item_count) = compute_inventory_value(&ctx, target_user.steam_id).await?;
+            match compute_inventory_value(&ctx, target_user.steam_id).await {
+                Ok((inv_value, item_count)) => {
+                    let steam_summary: SteamSummaryResponse;
+                    {
+                        let steam_token = &ctx.data().config.steam_token;
+                        let steam_summary_url = format!("http://api.steampowered.com/ISteamUser/GetPlayerSummaries/v0002/?key={}&steamids={}",
+                            steam_token,
+                            target_user.steam_id
+                        );
+                        let response = reqwest::get(steam_summary_url).await?.text().await?;
+                        steam_summary = serde_json::from_str(&response)?;
+                    }
 
-            let steam_summary: SteamSummaryResponse;
-            {
-                let steam_token = &ctx.data().config.steam_token;
-                let steam_summary_url = format!("http://api.steampowered.com/ISteamUser/GetPlayerSummaries/v0002/?key={}&steamids={}",
-                    steam_token,
-                    target_user.steam_id
-                );
-                let response = reqwest::get(steam_summary_url).await?.text().await?;
-                steam_summary = serde_json::from_str(&response)?;
-            }
+                    let steam_player: &SteamSummaryPlayer = &steam_summary.response.players[0];
 
-            let steam_player: &SteamSummaryPlayer = &steam_summary.response.players[0];
+                    embed = embed.title(format!("{}'s CS2 Inventory", steam_player.personaname))
+                        .description(format!("Account of <@{}>", user_id))
+                        .thumbnail(steam_player.avatarfull.clone())
+                        .color(serenity::Color::from_rgb(254, 171, 26))
+                        .field(
+                            format!("CS2 Inventory Value ({})", author_user.currency),
+                            format!("**{}** items worth **{}**\n Powered by [CS Backpack](https://www.csbackpack.net/)",
+                                item_count,
+                                exchange(inv_value, &author_user.currency, &ctx).await
+                            ),
+                        false);
 
-            embed = embed.title(format!("{}'s CS2 Inventory", steam_player.personaname))
-                .description(format!("Account of <@{}>", user_id))
-                .thumbnail(steam_player.avatarfull.clone())
-                .color(serenity::Color::from_rgb(254, 171, 26))
-                .field(
-                    format!("CS2 Inventory Value ({})", author_user.currency),
-                    format!("**{}** items worth **{}**\n Powered by [CS Backpack](https://www.csbackpack.net/)",
-                        item_count,
-                        exchange(inv_value, &author_user.currency, &ctx).await
-                    ),
-                false);
+                    components = Some(vec![serenity::CreateActionRow::Buttons(vec![
+                        serenity::CreateButton::new_link(format!("https://steamcommunity.com/profiles/{}/inventory/730/", target_user.steam_id))
+                            .label("View Inventory"),
+                        serenity::CreateButton::new_link("https://skinport.com/r/botchicken")
+                            .label("Purchase Skins"),
+                    ])]);
 
-            components = Some(vec![serenity::CreateActionRow::Buttons(vec![
-                serenity::CreateButton::new_link(format!("https://steamcommunity.com/profiles/{}/inventory/730/", target_user.steam_id))
-                    .label("View Inventory"),
-                serenity::CreateButton::new_link("https://skinport.com/r/botchicken")
-                    .label("Purchase Skins"),
-            ])]);
+                    // Perform role assignment
+                    if is_self {
+                        if let Some(guild_id) = ctx.guild_id() {
+                            let g_id = guild_id.get() as i64;
+                            if let Some(current_guild) = db.get_guild(&g_id).await? {
+                                for role in current_guild.roles {
+                                    if inv_value >= role.threshold {
+                                        if let Some((role_id, _)) = guild_id.roles(&ctx).await?.iter().find(|(x, _)| x.get() as i64 == role.role_id) {
+                                            let member = guild_id.member(&ctx, ctx.author().id).await?;
 
-            // Perform role assignment
-            if is_self {
-                if let Some(guild_id) = ctx.guild_id() {
-                    let g_id = guild_id.get() as i64;
-                    if let Some(current_guild) = db.get_guild(&g_id).await? {
-                        for role in current_guild.roles {
-                            if inv_value >= role.threshold {
-                                if let Some((role_id, _)) = guild_id.roles(&ctx).await?.iter().find(|(x, _)| x.get() as i64 == role.role_id) {
-                                    let member = guild_id.member(&ctx, ctx.author().id).await?;
-
-                                    match member.add_role(&ctx, role_id).await {
-                                        Ok(_) => {
-                                            embed = embed.field("Role Assigned", format!("<@&{}>", role_id.get()), false);
-                                        },
-                                        Err(e) => {
-                                            embed = embed.field("Error adding role", e.to_string(), false);
+                                            match member.add_role(&ctx, role_id).await {
+                                                Ok(_) => {
+                                                    embed = embed.field("Role Assigned", format!("<@&{}>", role_id.get()), false);
+                                                },
+                                                Err(e) => {
+                                                    embed = embed.field("Error adding role", e.to_string(), false);
+                                                }
+                                            }
                                         }
+
+                                        break;
                                     }
                                 }
-
-                                break;
                             }
                         }
                     }
                 }
+
+                Err(_) => {
+                    embed = embed
+                        .title(":x:  Error: Something unexpected occurred")
+                        .description("Please make sure your Steam inventory is public")
+                        .color(serenity::Color::RED)
+                }
             }
+
         }
     }
     else {
