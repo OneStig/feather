@@ -98,7 +98,7 @@ async fn compute_inventory_value(
 
 /// Check CS2 inventory value
 #[poise::command(
-    slash_command,
+    slash_command, prefix_command,
     category = "Items",
 )]
 pub async fn inv(
@@ -107,18 +107,31 @@ pub async fn inv(
     user: Option<serenity::User>
 ) -> Result<(), Error> {
 
+    // Check for prefix_command
+    if ctx.prefix() != "/" {
+        let embed = serenity::CreateEmbed::default()
+            .title("This command is deprecated")
+            .description("Please use </inv:1254551801647337494> instead.")
+            .color(serenity::Color::RED);
+        
+        let reply = poise::CreateReply::default().embed(embed);
+
+        ctx.send(reply).await?;
+        
+        return Ok(());
+    }
+
+    const ICON_URL: &str = "https://cdn.discordapp.com/avatars/371822760499871756/1caf027942b849dd774030ec8b333c10.webp";
+    let mut embed = serenity::CreateEmbed::default()
+        .author(serenity::CreateEmbedAuthor::new("Feather Inventory Valuation").icon_url(ICON_URL)).to_owned();
+    let mut components = None;
+
     let target = user.as_ref().unwrap_or_else(|| ctx.author());
     let user_id = target.id.get() as i64;
     let author_id = ctx.author().id.get() as i64;
     let is_self: bool = user_id == author_id;
     
     let db = ctx.data().db.lock().await;
-    
-    const ICON_URL: &str = "https://cdn.discordapp.com/avatars/371822760499871756/1caf027942b849dd774030ec8b333c10.webp";
-    let mut embed = serenity::CreateEmbed::default()
-        .author(serenity::CreateEmbedAuthor::new("Feather Inventory Valuation").icon_url(ICON_URL)).to_owned();
-    let mut components = None;
-    
     
     if let (Some(target_user), Some(author_user)) = (db.get_user(&user_id).await?, db.get_user(&author_id).await?) {
         // Need to pull author_user to do potential currency conversion
