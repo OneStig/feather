@@ -22,3 +22,4 @@ all.json
 /.vscode
 prices.json
 exchange.json
+.zed/settings.json

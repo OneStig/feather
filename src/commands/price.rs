@@ -1,32 +1,27 @@
 use serenity::futures::{Stream, StreamExt};
 use poise::serenity_prelude as serenity;
+use urlencoding::encode;
 
 use crate::{Context, Error};
 use crate::currency::exchange;
 
 fn smart_search(item: &str, query: &str) -> bool {
-    
-    // Note: This is currently very inefficient because the search is fully
-    //       exhaustive and doesn't yet utilize caching. Autocomplete times
-    //       in my testing are usable, but subpar, and will likely be worse
-    //       while under load from multiple users.
-
     let item_lower = item.to_lowercase();
     let query_lower = query.to_lowercase();
-    
     let query_words: Vec<&str> = query_lower.split_whitespace().collect();
-    
+
     query_words.iter().all(|&word| {
         item_lower.split(|c: char| !c.is_alphanumeric())
             .any(|item_part| item_part.contains(word))
     })
 }
+
 async fn autocomplete_item<'a>(
     ctx: Context<'a>,
     partial: &'a str,
 ) -> impl Stream<Item = String> + 'a {
     let hash_names = &ctx.data().all_hash_names;
-    
+
     serenity::futures::stream::iter(hash_names)
         .filter(move |item| serenity::futures::future::ready(smart_search(item, partial)))
         .map(|item| item.to_string())
@@ -88,14 +83,23 @@ pub async fn price(
             Some(imgurl) => {
                 embed = embed.thumbnail(imgurl);
             }
-
             None => {}
         }
 
+        let server_id = ctx.guild_id().map(|id| id.get()).unwrap_or(0);
+        let referral_code = if server_id == 727970463325749268 {
+            "hade"
+        } else {
+            "botchicken"
+        };
+
+        let encoded_item_name = encode(&item_name);
+
         let components = vec![serenity::CreateActionRow::Buttons(vec![
-            serenity::CreateButton::new("purchase").label("Purchase Item").disabled(true)
-            // serenity::CreateButton::new_link("")
-            //     .label("Purchase Item")
+            serenity::CreateButton::new_link(
+                format!("https://skinport.com/market?r={}&search={}", referral_code, encoded_item_name)
+            )
+            .label("Purchase Item")
         ])];
 
         poise::CreateReply::default()
@@ -111,8 +115,6 @@ pub async fn price(
             .embed(embed)
     };
 
-
     ctx.send(reply).await?;
-
     Ok(())
 }

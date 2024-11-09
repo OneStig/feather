@@ -78,7 +78,7 @@ async fn compute_inventory_value(
         if let Some(description) = classid_lookup.get(&asset.classid) {
             // this will need to be modified for dopplers
             let mut modified_hash_name = description.market_hash_name.clone();
-            
+
             if let Some(doppler) = doppler_data.get(&description.icon_url) {
                 modified_hash_name += &format!(" {}", doppler);
             }
@@ -113,11 +113,11 @@ pub async fn inv(
             .title("This command is deprecated")
             .description("Please use </inv:1254551801647337494> instead.")
             .color(serenity::Color::RED);
-        
+
         let reply = poise::CreateReply::default().embed(embed);
 
         ctx.send(reply).await?;
-        
+
         return Ok(());
     }
 
@@ -130,9 +130,9 @@ pub async fn inv(
     let user_id = target.id.get() as i64;
     let author_id = ctx.author().id.get() as i64;
     let is_self: bool = user_id == author_id;
-    
+
     let db = ctx.data().db.lock().await;
-    
+
     if let (Some(target_user), Some(author_user)) = (db.get_user(&user_id).await?, db.get_user(&author_id).await?) {
         // Need to pull author_user to do potential currency conversion
 
@@ -180,10 +180,17 @@ pub async fn inv(
                             ),
                         false);
 
+                    let server_id = ctx.guild_id().map(|id| id.get()).unwrap_or(0);
+                    let referral_code = if server_id == 727970463325749268 {
+                        "hade"
+                    } else {
+                        "botchicken"
+                    };
+
                     components = Some(vec![serenity::CreateActionRow::Buttons(vec![
                         serenity::CreateButton::new_link(format!("https://steamcommunity.com/profiles/{}/inventory/730/", target_user.steam_id))
                             .label("View Inventory"),
-                        serenity::CreateButton::new_link("https://skinport.com/r/botchicken")
+                        serenity::CreateButton::new_link(format!("https://skinport.com/r/{}", referral_code))
                             .label("Purchase Skins"),
                     ])]);
 
@@ -230,14 +237,14 @@ pub async fn inv(
             .title(":x:  Error: Something unexpected occurred")
             .color(serenity::Color::RED)
     }
-    
+
     let mut reply = poise::CreateReply::default().embed(embed);
-    
+
     if let Some(some_cmp) = components {
         reply = reply.components(some_cmp);
     }
 
     ctx.send(reply).await?;
-    
+
     Ok(())
 }
