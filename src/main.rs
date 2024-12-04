@@ -49,13 +49,10 @@ async fn main() {
     let token = config.discord_token.clone();
 
     // Load item information, but don't crash if fail
-    let (item_data, doppler_data) = match consolidate_prices().await {
-        Ok(items) => items,
-        Err(e) => {
-            eprintln!("Failed to pull items: {}", e);
-            (HashMap::new(), HashMap::new())
-        }
-    };
+    let (item_data, doppler_data) = consolidate_prices().await.unwrap_or_else(|e| {
+        eprintln!("Failed to pull items: {}", e);
+        (HashMap::new(), HashMap::new())
+    });
 
     let mut all_hash_names: Vec<String> = item_data.keys().cloned().collect();
     all_hash_names.sort_by(|a, b| {

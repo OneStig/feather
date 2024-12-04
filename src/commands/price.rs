@@ -47,11 +47,16 @@ pub async fn price(
 
         let rarity_color = match &found_skin.info.rarity {
             Some(rarity) => {
-                serenity::Color::from_rgb(
-                    u8::from_str_radix(&rarity.color[1..3], 16).unwrap(),
-                    u8::from_str_radix(&rarity.color[3..5], 16).unwrap(),
-                    u8::from_str_radix(&rarity.color[5..7], 16).unwrap()
-                )
+                match &rarity.color {
+                    Some(rarity_color) => serenity::Color::from_rgb(
+                        u8::from_str_radix(&rarity_color[1..3], 16).unwrap(),
+                        u8::from_str_radix(&rarity_color[3..5], 16).unwrap(),
+                        u8::from_str_radix(&rarity_color[5..7], 16).unwrap()
+                    ),
+
+                    None => serenity::Color::LIGHT_GREY,
+                }
+
             },
             None => serenity::Color::LIGHT_GREY,
         };
