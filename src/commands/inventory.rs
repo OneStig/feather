@@ -174,7 +174,7 @@ pub async fn inv(
                         .color(serenity::Color::from_rgb(254, 171, 26))
                         .field(
                             format!("CS2 Inventory Value ({})", author_user.currency),
-                            format!("**{}** items worth **{}**\n Powered by [CS Backpack](https://www.csbackpack.net/)",
+                            format!("**{}** items worth **{}**\n Powered by [Skinpock.com](https://www.skinpock.com/)",
                                 item_count,
                                 exchange(inv_value, &author_user.currency, &ctx).await
                             ),
